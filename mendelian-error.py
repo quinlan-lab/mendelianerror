@@ -10,31 +10,33 @@ def mendelian_error(mother, father, child):
     error. Low values mean that the genotype-likelihoods indicate enough
     uncertainty that it could be a genotyping error.
 
+
     # everyone is het:
     >>> het = (-2.0, -0.1, -2.0)
     >>> mendelian_error(het, het, het)
+    0.047...
 
     # parents are hom, child is het.
     >>> father = mother = [-0.6, -2.5, -2.5]
     >>> child = [-2.5, -0.6, -2.5]
     >>> mendelian_error(mother, father, child)
-    0.939...
+    0.987...
 
     # same as above, but more certainty in the called genotypes:
     >>> child[1] = 1e-6
     >>> mother[0] = father[0] = 1e-6
     >>> mendelian_error(mother, father, child)
-    0.984...
+    0.996...
 
     # everyone is confidently homozygous alt
     >>> child = father = mother = [-11.0, -11.0, -0.1]
     >>> mendelian_error(mother, father, child)
-    5.03...e-11
+    7.55...e-11
 
     # everyone is less confidently homozygous refs:
     >>> child = father = mother = [-0.1, -2.0, -2.0]
     >>> mendelian_error(mother, father, child)
-    0.047...
+    0.071...
 
     mother and fater are homozygous alts
     >>> mother = father = [-3.0, -3.0, -0.1]
@@ -42,66 +44,67 @@ def mendelian_error(mother, father, child):
     # child is het
     >>> child = [-3., -0.1, -3.]
     >>> mendelian_error(mother, father, child)
-    0.993...
+    0.998...
 
     # but when the hom-alt call is close...
     >>> child = [-3., -0.1, -0.15]
     >>> mendelian_error(mother, father, child)
-    0.52...
+    0.53...
 
     # mother is hom_ref, dad is het, child is hom_alt
     >>> mother, father, child = (-0.1, -2, -2), (-2, -0.1, -2), (-2, -2, -0.1)
     >>> mendelian_error(mother, father, child)
-    0.940...
+    0.976...
 
     # mother is hom_ref, dad is hom_alt, child is hom_ref
     >>> mother, father, child = (-0.1, -2.5, -2.5), (-2.5, -2.5, -0.1), (-0.1, -2.5, -2.5)
     >>> mendelian_error(mother, father, child)
-    0.984...
+    0.993...
 
     # same, but child is hom_alt
     >>> mendelian_error(mother, father, (-5, -5, -0.01))
-    0.988...
+    0.994...
 
     # child should be het:
-    >>> mendelian_error(mother, father, (-2, -0.1, -2))
-    0.024...
+    >>> mendelian_error(mother, father, (-3, 0, -3))
+    0.75...
 
 
     """
     M = rescale([10.**m for m in mother])
     F = rescale([10.**f for f in father])
     C = rescale([10.**c for c in child])
-    assert sum(C) - 1.0 < 0.001
-    assert sum(M) - 1.0 < 0.001
-    assert sum(F) - 1.0 < 0.001
 
     # by ref, and alt, we mean hom_ref, hom_alt
     p_two_ref = M[0] * F[0]
     p_two_het = M[1] * F[1]
     p_two_alt = M[2] * F[2]
 
-    # only 1 of the parents is ...
-    p_one_ref = M[0] + F[0] - p_two_ref
-    p_one_het = M[1] + F[1] - p_two_het
-    p_one_alt = M[2] + F[2] - p_two_alt
 
-    #################################
-    # Ways to *not* have violations #
-    #################################
-    # 1. everyone is reference
+    # only 1 of the parents is ...
+    p_one_ref = (M[0] + F[0])/2 - p_two_ref
+    p_one_het = (M[1] + F[1])/2 - p_two_het
+    p_one_alt = (M[2] + F[2])/2 - p_two_alt
+    # divide by 2 because parents independent.
+
+    # all options covered because, e.g. p(two_ref) == p(zero_alt)
+    assert abs(sum((p_one_ref, p_one_het, p_one_alt, p_two_ref, p_two_het, p_two_alt)) - 1) < 1e-6
+    ##################
+    # Non-violations #
+    ##################
+    # a. everyone is reference
     a = p_two_ref * C[0]
-    # 2. everyone is hom alt
+    # b. everyone is hom alt
     b = p_two_alt * C[2]
-    # 3. 1 het and 1 ref parent. child matches
+    # c. 1 het and 1 ref parent. child matches
     c = p_one_het * p_one_ref * (C[0] + C[1])
-    # 4. 1 het and 1 alt parent. child matches
+    # d. 1 het and 1 alt parent. child matches
     d = p_one_het * p_one_alt * (C[1] + C[2])
-    # 5. both parents hets. (child can be anything)
+    # e. both parents hets. (child can be anything)
     e = p_two_het
-    # 6. one hom ref, one home alt. child is het
+    # f. one hom ref, one home alt. child is het
     f = p_one_ref * p_one_alt * C[1]
-    print a, b, c, d, e, f
+    #print a, b, c, d, e, f
 
     p_not_error = a + b + c + d + e + f
     return 1.0 - p_not_error
@@ -110,3 +113,24 @@ if __name__ == "__main__":
     import doctest
     import sys
     sys.stderr.write(str(doctest.testmod(optionflags=doctest.NORMALIZE_WHITESPACE | doctest.ELLIPSIS | doctest.REPORT_ONLY_FIRST_FAILURE, verbose=0)) + "\n")
+    from random import randint
+
+    def gen3():
+        return [randint(-70, 1) / 10. for i in range(3)]
+
+    min_p, max_p = 1, 0
+    ps = []
+    for i in xrange(100000):
+        a, b, c = gen3(), gen3(), gen3()
+        ps.append(mendelian_error(a, b, c))
+        if ps[-1] > 0.999999:
+            print "mendelian error:", tuple(a), tuple(b), tuple(c)
+        elif ps[-1] < 0.00001:
+            print "expected       :", tuple(a), tuple(b), tuple(c)
+    try:
+        import pylab as pl
+        pl.hist(ps, 50)
+        pl.show()
+    except ImportError:
+        pass
+
