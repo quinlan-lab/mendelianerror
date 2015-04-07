@@ -1,4 +1,6 @@
-
+import sys
+from math import log10
+import gzip
 
 class LowGenotypeException(Exception):
     pass
@@ -91,7 +93,7 @@ def mendelian_error(mother, father, child):
         M = rescale([10.**m for m in mother])
         F = rescale([10.**f for f in father])
         C = rescale([10.**c for c in child])
-    except:
+    except LowGenotypeException:
         return None
 
     # by ref, and alt, we mean hom_ref, hom_alt
@@ -129,10 +131,58 @@ def mendelian_error(mother, father, child):
     p_not_error = a + b + c + d + e + f
     return 1.0 - p_not_error
 
-if __name__ == "__main__":
-    import doctest
-    import sys
-    sys.stderr.write(str(doctest.testmod(optionflags=doctest.NORMALIZE_WHITESPACE | doctest.ELLIPSIS | doctest.REPORT_ONLY_FIRST_FAILURE, verbose=0)) + "\n")
+def xopen(f):
+    return gzip.open(f) if f.endswith(".gz") else sys.stdin if "-" == f else open(f)
+
+def main(fh, father, mother, child):
+
+    for line in fh:
+        if line.startswith("##"):
+            print line,
+            continue
+        elif line.startswith("#CHROM"):
+            print "##INFO=<ID=MEP,Number=1,Type=Float,Description=\"probability of mendelian error\">"
+            print "##INFO=<ID=MER,Number=1,Type=Float,Description=\"log10 ratio of mendelian error\">"
+            fields = line.rstrip().split("\t")
+            samples = fields[9:]
+            idxs = [9 + samples.index(s) for s in (father, mother, child)]
+            print line,
+            continue
+
+        fields = line.rstrip().split("\t")
+        samples = [fields[i].split(":") for i in idxs]
+
+        fmt = fields[8].split(":")
+        if "PL" in fmt:
+            gli = fmt.index("PL")
+            opls = [s[gli].split(",") for s in samples]
+            gls = [[int(p)/-10. for p in pl] for pl in opls]
+        else:
+            gli = fmt.index("GL")
+            ogls = [s[gli].split(",") for s in samples]
+            gls = [[float(p) for g in gl] for gl in ogls]
+
+        for i, gl in enumerate(gls):
+            while sum(gls[i]) < -50:
+                gls[i] = [p / 10. for p in gls[i]]
+        p = mendelian_error(gls[0], gls[1], gls[2])
+
+        if p == 1:
+            mer = 100 
+        elif p == 0:
+            mer = 0
+        elif p is None:
+            mer = None
+        else:
+            mer = log10(p / (1.0 - p))
+        if p < 1 - 1e-5 or p is None:
+            continue
+
+        fields[7] += ";MEP=%.8g" % (nan if p is None else p)
+        fields[7] += ";MER=%.8g" % (nan if p is None else mer)
+        print "\t".join(fields)
+
+def test():
     from random import randint
     sys.exit()
 
@@ -155,3 +205,18 @@ if __name__ == "__main__":
     except ImportError:
         pass
 
+
+if __name__ == "__main__":
+    import doctest
+    import sys
+    sys.stderr.write(str(doctest.testmod(optionflags=doctest.NORMALIZE_WHITESPACE | doctest.ELLIPSIS | doctest.REPORT_ONLY_FIRST_FAILURE, verbose=0)) + "\n")
+    if len(sys.argv) > 1 and sys.argv[1] == "test":
+        sys.exit(test())
+
+    elif len(sys.argv) != 5:
+        print "call like %s some.vcf father_id mother_id child_id > new.vcf" % sys.argv[0]
+        sys.exit()
+
+    nan = float('nan')
+    father, mother, child = sys.argv[2:]
+    main(xopen(sys.argv[1]), father, mother, child)
