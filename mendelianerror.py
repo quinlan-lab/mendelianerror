@@ -1,3 +1,7 @@
+"""
+Calculate the probability of a mendelian error given the genotype likelihoods
+from a trio."""
+
 import sys
 from math import log10
 import gzip
@@ -82,7 +86,6 @@ def mendelian_error(mother, father, child):
     0.8629...
 
     >>> mendelian_error([-15.5, -15.8, -19.7], [-11.8, -9.9, -22.9], [-69.7, -55.9, -58.3])
-    0.561...
 
     >>> mendelian_error([-3.4, -0, -2.9], [-0, -1.8, -23.0], [-6.7, 0.0, -10.7])
     0.742...
@@ -214,7 +217,8 @@ if __name__ == "__main__":
         sys.exit(test())
 
     elif len(sys.argv) != 5:
-        print "call like %s some.vcf father_id mother_id child_id > new.vcf" % sys.argv[0]
+        print __doc__
+        print "\nUsage: %s some.vcf father_id mother_id child_id > new.vcf\n" % sys.argv[0]
         sys.exit()
 
     nan = float('nan')
