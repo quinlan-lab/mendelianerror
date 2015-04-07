@@ -1,6 +1,12 @@
 
+
+class LowGenotypeException(Exception):
+    pass
+
 def rescale(li):
     s = float(sum(li))
+    if s < 1e-40:
+        raise LowGenotypeException
     return [v / s for v in li]
 
 def mendelian_error(mother, father, child):
@@ -69,11 +75,24 @@ def mendelian_error(mother, father, child):
     >>> mendelian_error(mother, father, (-3, 0, -3))
     0.75...
 
+    # NOTE: does oddish things if all have very low, equal values.
+    >>> mendelian_error([-16.2, -16.2, -16.2], [-14.4, -15.0, -22.6], [-24.9, -21.2, -20.9])
+    0.8629...
+
+    >>> mendelian_error([-15.5, -15.8, -19.7], [-11.8, -9.9, -22.9], [-69.7, -55.9, -58.3])
+    0.561...
+
+    >>> mendelian_error([-3.4, -0, -2.9], [-0, -1.8, -23.0], [-6.7, 0.0, -10.7])
+    0.742...
+    
 
     """
-    M = rescale([10.**m for m in mother])
-    F = rescale([10.**f for f in father])
-    C = rescale([10.**c for c in child])
+    try:
+        M = rescale([10.**m for m in mother])
+        F = rescale([10.**f for f in father])
+        C = rescale([10.**c for c in child])
+    except:
+        return None
 
     # by ref, and alt, we mean hom_ref, hom_alt
     p_two_ref = M[0] * F[0]
@@ -88,7 +107,8 @@ def mendelian_error(mother, father, child):
     # divide by 2 because parents independent.
 
     # all options covered because, e.g. p(two_ref) == p(zero_alt)
-    assert abs(sum((p_one_ref, p_one_het, p_one_alt, p_two_ref, p_two_het, p_two_alt)) - 1) < 1e-6
+    assert abs(sum((p_one_ref, p_one_het, p_one_alt, p_two_ref, p_two_het, p_two_alt)) - 1) < 1e-4, \
+                abs(sum((p_one_ref, p_one_het, p_one_alt, p_two_ref, p_two_het, p_two_alt)) - 1)
     ##################
     # Non-violations #
     ##################
@@ -114,6 +134,7 @@ if __name__ == "__main__":
     import sys
     sys.stderr.write(str(doctest.testmod(optionflags=doctest.NORMALIZE_WHITESPACE | doctest.ELLIPSIS | doctest.REPORT_ONLY_FIRST_FAILURE, verbose=0)) + "\n")
     from random import randint
+    sys.exit()
 
     def gen3():
         return [randint(-70, 1) / 10. for i in range(3)]
