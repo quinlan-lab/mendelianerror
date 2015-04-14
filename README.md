@@ -32,6 +32,11 @@ to assign a probability:
 
 So the input is the 3 GL numbers for each of the father, mother, child.
 
+Installation
+============
+
+    pip install mendelianerror
+
 CLI
 ===
 

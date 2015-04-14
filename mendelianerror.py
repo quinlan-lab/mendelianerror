@@ -6,6 +6,8 @@ import sys
 from math import log10
 import gzip
 
+nan = float('nan')
+
 class LowGenotypeException(Exception):
     pass
 
@@ -15,7 +17,7 @@ def rescale(li):
         raise LowGenotypeException
     return [v / s for v in li]
 
-def mendelian_error(mother, father, child):
+def mendelian_error(mother, father, child, pls=False):
     """
     Return the probability of a mendelian error given the log10 genotype
     likelihoods. A large value indicates a high probability of a mendelian
@@ -92,6 +94,10 @@ def mendelian_error(mother, father, child):
 
 
     """
+    if pls:
+        mother = [m / -10.0 for m in mother]
+        father = [f / -10.0 for f in father]
+        child  = [c / -10.0 for c in child]
     try:
         M = rescale([10.**m for m in mother])
         F = rescale([10.**f for f in father])
@@ -192,7 +198,6 @@ def test():
     def gen3():
         return [randint(-70, 1) / 10. for i in range(3)]
 
-    min_p, max_p = 1, 0
     ps = []
     for i in xrange(100000):
         a, b, c = gen3(), gen3(), gen3()
@@ -217,12 +222,10 @@ def _main():
         print "\nUsage: %s some.vcf father_id mother_id child_id > new.vcf\n" % sys.argv[0]
         sys.exit()
 
-    nan = float('nan')
     father, mother, child = sys.argv[2:]
     main(xopen(sys.argv[1]), father, mother, child)
 
 if __name__ == "__main__":
     import doctest
-    import sys
     sys.stderr.write(str(doctest.testmod(optionflags=doctest.NORMALIZE_WHITESPACE | doctest.ELLIPSIS | doctest.REPORT_ONLY_FIRST_FAILURE, verbose=0)) + "\n")
     _main()
