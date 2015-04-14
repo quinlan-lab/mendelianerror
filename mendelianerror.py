@@ -89,7 +89,7 @@ def mendelian_error(mother, father, child):
 
     >>> mendelian_error([-3.4, -0, -2.9], [-0, -1.8, -23.0], [-6.7, 0.0, -10.7])
     0.742...
-    
+
 
     """
     try:
@@ -171,7 +171,7 @@ def main(fh, father, mother, child):
         p = mendelian_error(gls[0], gls[1], gls[2])
 
         if p == 1:
-            mer = 100 
+            mer = 100
         elif p == 0:
             mer = 0
         elif p is None:
@@ -208,11 +208,7 @@ def test():
     except ImportError:
         pass
 
-
-if __name__ == "__main__":
-    import doctest
-    import sys
-    sys.stderr.write(str(doctest.testmod(optionflags=doctest.NORMALIZE_WHITESPACE | doctest.ELLIPSIS | doctest.REPORT_ONLY_FIRST_FAILURE, verbose=0)) + "\n")
+def _main():
     if len(sys.argv) > 1 and sys.argv[1] == "test":
         sys.exit(test())
 
@@ -224,3 +220,9 @@ if __name__ == "__main__":
     nan = float('nan')
     father, mother, child = sys.argv[2:]
     main(xopen(sys.argv[1]), father, mother, child)
+
+if __name__ == "__main__":
+    import doctest
+    import sys
+    sys.stderr.write(str(doctest.testmod(optionflags=doctest.NORMALIZE_WHITESPACE | doctest.ELLIPSIS | doctest.REPORT_ONLY_FIRST_FAILURE, verbose=0)) + "\n")
+    _main()
