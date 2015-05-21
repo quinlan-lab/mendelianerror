@@ -45,6 +45,13 @@ After installation, one can use this on a multi-sample VCF file like:
 mendelianerror $input.vcf father_id mother_id child_id > $new.vcf
 ```
 
+to get only the putative mendelian errors, set a high cutoff:
+
+```Shell
+mendelianerror --cutoff 0.999 $input.vcf father_id mother_id child_id > $new.vcf
+```
+
+
 Limitations
 ===========
 
