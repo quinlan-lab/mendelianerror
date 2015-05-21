@@ -162,14 +162,18 @@ def main(fh, father, mother, child):
         samples = [fields[i].split(":") for i in idxs]
 
         fmt = fields[8].split(":")
-        if "PL" in fmt:
-            gli = fmt.index("PL")
-            opls = [s[gli].split(",") for s in samples]
-            gls = [[int(p)/-10. for p in pl] for pl in opls]
-        else:
-            gli = fmt.index("GL")
-            ogls = [s[gli].split(",") for s in samples]
-            gls = [[float(p) for g in gl] for gl in ogls]
+        try:
+            if "PL" in fmt:
+                gli = fmt.index("PL")
+                opls = [s[gli].split(",") for s in samples]
+                gls = [[int(p)/-10. for p in pl] for pl in opls]
+            else:
+                gli = fmt.index("GL")
+                ogls = [s[gli].split(",") for s in samples]
+                gls = [[float(p) for g in gl] for gl in ogls]
+        except (IndexError, ValueError): # not info for at least 1 sample
+            print line,
+            continue
 
         for i, gl in enumerate(gls):
             while sum(gls[i]) < -50:
@@ -184,8 +188,8 @@ def main(fh, father, mother, child):
             mer = None
         else:
             mer = log10(p / (1.0 - p))
-        if p < 1 - 1e-5 or p is None:
-            continue
+        #if p < 1 - 1e-5 or p is None:
+        #    continue
 
         fields[7] += ";MEP=%.8g" % (nan if p is None else p)
         fields[7] += ";MER=%.8g" % (nan if p is None else mer)
