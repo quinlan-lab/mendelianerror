@@ -92,6 +92,8 @@ def mendelian_error(mother, father, child, pls=False):
     >>> mendelian_error([-3.4, -0, -2.9], [-0, -1.8, -23.0], [-6.7, 0.0, -10.7])
     0.742...
 
+    >>> mendelian_error([34, 0, 29], [0, 18, 23], [67, 0, 107], pls=True)
+    0.74...
 
     """
     if pls:
