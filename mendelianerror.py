@@ -170,7 +170,7 @@ def main(fh, father, mother, child, cutoff=None):
             else:
                 gli = fmt.index("GL")
                 ogls = [s[gli].split(",") for s in samples]
-                gls = [[float(p) for g in gl] for gl in ogls]
+                gls = [[float(g) for g in gl] for gl in ogls]
         except (IndexError, ValueError): # not info for at least 1 sample
             if cutoff == 1:
                 print line,
