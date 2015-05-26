@@ -1,7 +1,7 @@
 
 from setuptools import setup
 
-setup(version='0.0.2',
+setup(version='0.0.3',
       name='mendelianerror',
       py_modules=['mendelianerror'],
       description="probability of mendelian error in trios",

@@ -145,7 +145,7 @@ def mendelian_error(mother, father, child, pls=False):
 def xopen(f):
     return gzip.open(f) if f.endswith(".gz") else sys.stdin if "-" == f else open(f)
 
-def main(fh, father, mother, child):
+def main(fh, father, mother, child, cutoff=None):
 
     for line in fh:
         if line.startswith("##"):
@@ -164,19 +164,26 @@ def main(fh, father, mother, child):
         samples = [fields[i].split(":") for i in idxs]
 
         fmt = fields[8].split(":")
-        if "PL" in fmt:
-            gli = fmt.index("PL")
-            opls = [s[gli].split(",") for s in samples]
-            gls = [[int(p)/-10. for p in pl] for pl in opls]
-        else:
-            gli = fmt.index("GL")
-            ogls = [s[gli].split(",") for s in samples]
-            gls = [[float(p) for g in gl] for gl in ogls]
+        try:
+            if "PL" in fmt:
+                gli = fmt.index("PL")
+                opls = [s[gli].split(",") for s in samples]
+                gls = [[int(p)/-10. for p in pl] for pl in opls]
+            else:
+                gli = fmt.index("GL")
+                ogls = [s[gli].split(",") for s in samples]
+                gls = [[float(g) for g in gl] for gl in ogls]
+        except (IndexError, ValueError): # not info for at least 1 sample
+            if cutoff == 1:
+                print line,
+            continue
 
         for i, gl in enumerate(gls):
             while sum(gls[i]) < -50:
                 gls[i] = [p / 10. for p in gls[i]]
         p = mendelian_error(gls[0], gls[1], gls[2])
+        if p < cutoff:
+            continue
 
         if p == 1:
             mer = 100
@@ -186,8 +193,6 @@ def main(fh, father, mother, child):
             mer = None
         else:
             mer = log10(p / (1.0 - p))
-        if p < 1 - 1e-5 or p is None:
-            continue
 
         fields[7] += ";MEP=%.8g" % (nan if p is None else p)
         fields[7] += ";MER=%.8g" % (nan if p is None else mer)
@@ -218,14 +223,18 @@ def test():
 def _main():
     if len(sys.argv) > 1 and sys.argv[1] == "test":
         sys.exit(test())
+    import argparse
+    a = argparse.ArgumentParser()
+    a.add_argument("vcf")
+    a.add_argument("father_id", help="sample name of father in the vcf header")
+    a.add_argument("mother_id", help="sample name of mother in the vcf header")
+    a.add_argument("kid_id", help="sample name of kid in the vcf header")
+    a.add_argument("--cutoff", type=float, default=1.0, help="don't print \
+variants with a mendelian error probability below this")
 
-    elif len(sys.argv) != 5:
-        print __doc__
-        print "\nUsage: %s some.vcf father_id mother_id child_id > new.vcf\n" % sys.argv[0]
-        sys.exit()
+    p = a.parse_args()
 
-    father, mother, child = sys.argv[2:]
-    main(xopen(sys.argv[1]), father, mother, child)
+    main(xopen(p.vcf), p.father_id, p.mother_id, p.kid_id, p.cutoff)
 
 if __name__ == "__main__":
     import doctest

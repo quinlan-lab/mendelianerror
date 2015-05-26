@@ -15,7 +15,7 @@ to assign a probability:
 
 ```Python
 
->>> from mendelianerror import
+>>> from mendelianerror import mendelian_error
 # everyone is homref. this should have a low probability of an error:
 >>> father = mother = child = [-0.1, -8.0, -8.0]
 >>> mendelian_error(mother, father, child)
@@ -44,6 +44,13 @@ After installation, one can use this on a multi-sample VCF file like:
 ```Shell
 mendelianerror $input.vcf father_id mother_id child_id > $new.vcf
 ```
+
+to get only the putative mendelian errors, set a high cutoff:
+
+```Shell
+mendelianerror --cutoff 0.999 $input.vcf father_id mother_id child_id > $new.vcf
+```
+
 
 Limitations
 ===========
