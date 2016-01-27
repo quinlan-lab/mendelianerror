@@ -96,6 +96,10 @@ def mendelian_error(mother, father, child, pls=False):
     0.74...
 
     """
+    if len(mother) != 3 or len(father) != 3 or len(child) != 3:
+        sys.stderr.write("WARNING: found a multi-allelic site. run VCF through vt decompose\n")
+        return None
+
     if pls:
         mother = [m / -10.0 for m in mother]
         father = [f / -10.0 for f in father]
